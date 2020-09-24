@@ -14,6 +14,6 @@ defmodule Battleline.Game.Battlefield do
   end
 
   defp new_forces do
-    %{player_1: [], player_2: [], winner: nil}
+    %{player_1: [], player_2: [], winner: :na}
   end
 end
