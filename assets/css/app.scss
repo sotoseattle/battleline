@@ -89,3 +89,62 @@
   display: block;
   margin: -1rem 0 2rem;
 }
+
+/* my own stuff fjs6 */
+
+div.hand {
+  width: 100%;
+  background-color: #f2dede;
+  padding: 0%;
+  margin: 0%;
+  display: inline-flex;
+}
+
+div.card {
+  height: 40px;
+  border: 1px solid #000;    
+  position: relative;
+  padding: 1%;
+  margin: 1%;
+  text-align: center;
+  border-radius: 5%;
+}
+
+div.card_value {
+  background: white;
+  border-radius: 100%;
+  position: absolute;
+  margin: auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 24px;
+  width: 24px;
+}
+
+div.battlefield {
+  width: 100%;
+  height: 400px;
+  display: inline-flex;
+}
+
+div.battleline {
+  width: 11%;
+  display: inline-block;
+  text-align: center;
+}
+
+div.flag {
+  text-align: center;
+}
+
+div.deployment {
+  background-color: #faebcc;
+  margin: 1%;
+  height: 200px;
+}
+
+div.hot {
+  margin-top: 20px;
+}

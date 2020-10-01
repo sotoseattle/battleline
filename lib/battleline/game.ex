@@ -15,10 +15,14 @@ defmodule Battleline.Game do
   end
 
   def draw(%{deck: [card | rest]} = game, player) do
-    game
-    |> Map.put(:deck, rest)
-    |> add_to_hand(player, card)
-    |> Map.put(:log, "#{player} drew a card")
+    if length(Map.get(game, player)) >= 7 do
+      game
+    else
+      game
+      |> Map.put(:deck, rest)
+      |> add_to_hand(player, card)
+      |> Map.put(:log, "#{player} drew a card")
+    end
   end
 
   defp add_to_hand(game, player, card) do
@@ -28,6 +32,20 @@ defmodule Battleline.Game do
   defp remove_from_hand(game, player, card) do
     game |> Map.update!(player, &List.delete(&1, card))
   end
+
+  def activate_card(game, player, color, value) do
+    game
+    |> Map.update!(player, &Enum.map(&1,
+        fn x ->
+          same?(x, color,  String.to_integer(value))
+        end))
+    |> Map.put(:log, "#{player} selected #{color}:#{value}")
+  end
+
+  defp same?(%{color: col, value: val, active?: false} = card, col, val) do
+    Map.put(card, :active?, true)
+  end
+  defp same?(card, _, _), do: Map.put(card, :active?, false)
 
   def deploy(game, %{player: player, card: card, line: line}) do
     game
@@ -49,8 +67,7 @@ defmodule Battleline.Game do
         :battlefield,
         game.battlefield
           |> Enum.map(fn {k, v} -> {k, score(v)} end)
-          |> Map.new
-    )
+          |> Map.new)
   end
 
   def score(%{winner: :na, player_1: p1, player_2: p2} = battleline)

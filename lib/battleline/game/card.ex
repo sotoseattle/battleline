@@ -1,16 +1,16 @@
 defmodule Battleline.Game.Card do
-  defstruct [:color, :value]
+  defstruct [:color, :value, :active?]
 
-  @colors [:red, :blue, :green, :gold, :purple, :black]
+  @colors ~w[red blue green orange purple black]
 
   def new(color, value) do
-    %__MODULE__{color: color, value: value}
+    %__MODULE__{color: color, value: value, active?: false}
   end
 
   def new_deck do
     for color <- @colors do
-      for n <- (1..10) do
-        new(color, n)
+      for value <- (1..10) do
+        new(color, value)
       end
     end
     |> List.flatten
