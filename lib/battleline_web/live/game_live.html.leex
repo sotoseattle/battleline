@@ -8,14 +8,18 @@
 
         <div class="flag"><%= flag %></div>
 
-        <div class="deployment">
-        <%= for card <- force.player_1 do %>
-          <div class="card"style="background-color:<%= card.color %>;">
-            <div class="card_value">
-              <%= card.value %>
+        <div class="deployment"
+        phx-click="deploy"
+        phx-value-line="<%= flag %>"
+        phx-value-player="<%= :player_1 %>"
+        >
+          <%= for card <- force.player_1 do %>
+            <div class="card"style="background-color:<%= card.color %>;">
+              <div class="card_value">
+                <%= card.value %>
+              </div>
             </div>
-          </div>
-        <% end %>
+          <% end %>
         </div>
     </div>
   <% end %>

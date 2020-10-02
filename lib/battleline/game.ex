@@ -47,6 +47,7 @@ defmodule Battleline.Game do
   end
   defp same?(card, _, _), do: Map.put(card, :active?, false)
 
+  def deploy(game, %{card: nil}), do: game
   def deploy(game, %{player: player, card: card, line: line}) do
     game
     |> remove_from_hand(player, card)
@@ -54,6 +55,7 @@ defmodule Battleline.Game do
       [:battlefield, line, player] |> Enum.map(&Access.key/1),
       &([card|&1]))
   end
+
 
   def cleanup(game) do
     game
