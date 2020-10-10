@@ -8,12 +8,9 @@ defmodule Battleline.Game.Card do
   end
 
   def new_deck do
-    for color <- @colors do
-      for value <- (1..10) do
-        new(color, value)
-      end
+    for c <- @colors, v <- (1..10), into: [] do
+      new(c, v)
     end
-    |> List.flatten
     |> Enum.shuffle
   end
 
