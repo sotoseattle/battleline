@@ -1,10 +1,14 @@
 defmodule BattlelineWeb.GameLive do
   use BattlelineWeb, :live_view
 
+  alias Battleline.Accounts
   alias Battleline.Game
 
-  def mount(_o_o, _session, socket) do
-    {:ok, assign(socket, game: Game.new())}
+  def mount(_o_o, %{"user_token" => token}, socket) do
+    {:ok, assign(
+      socket,
+      game: Game.new(),
+      current_user: Accounts.get_user_by_session_token(token))}
   end
 
   # VIEW HELPERS
