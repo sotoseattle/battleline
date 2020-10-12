@@ -3,40 +3,39 @@ defmodule Battleline.GameTest do
   alias Battleline.Game
   alias Battleline.Game.Card
 
+  defp drw(tup, 0), do: tup
+  defp drw({deck, hand}, n), do: drw(Card.draw(deck, hand), n-1)
+
   test "draw cards from deck to players hands" do
-    g = Game.new()
-    [c1, c2, c3, c4, c5, c6, c7, c8, c9 | _rest] = g.deck
+    {deck, hand} = {Card.new_deck(), []}
+    [c1, c2, c3, c4, c5, c6, c7, c8, c9 | _rest] = deck
+    {deck, hand} = drw({deck, hand}, 8)
 
-    g = g
-    |> Game.draw(:player_2) |> Game.draw(:player_1) |> Game.draw(:player_2)
-    |> Game.draw(:player_1) |> Game.draw(:player_2) |> Game.draw(:player_2)
-    |> Game.draw(:player_1) |> Game.draw(:player_2) |> Game.draw(:player_1)
-
-    assert length(g.deck) == 51
-    refute [c1, c2, c3, c4, c5, c6, c7, c8, c9] |> Enum.any?(&(&1 in g.deck))
-    assert g.player_2 == Enum.reverse([c1, c3, c5, c6, c8])
-    assert g.player_1 == Enum.reverse([c2, c4, c7, c9])
+    assert length(deck) == 53
+    refute [c1, c2, c3, c4, c5, c6, c7] |> Enum.any?(&(&1 in deck))
+    assert [c8, c9] |> Enum.any?(&(&1 in deck))
+    assert hand == Enum.reverse([c1, c2, c3, c4, c5, c6, c7])
   end
 
-  test "deploy from player's hand to battlefield lines" do
-    g = Game.new()
-    [c1, c2, c3, c4 | _rest] = g.deck
+  # test "deploy from player's hand to battlefield lines" do
+  #   g = Game.new()
+  #   [c1, c2, c3, c4 | _rest] = g.deck
 
-    g = g
-      |> Game.draw(:player_2) |> Game.draw(:player_1)
-      |> Game.draw(:player_1) |> Game.draw(:player_2)
+  #   g = g
+  #     |> Game.draw(:player_2) |> Game.draw(:player_1)
+  #     |> Game.draw(:player_1) |> Game.draw(:player_2)
 
-    g = Game.deploy(g, %{ player: :player_2, card: hd(g.player_2), line: "1"})
-    g = Game.deploy(g, %{ player: :player_1, card: hd(g.player_1), line: "3"})
-    g = Game.deploy(g, %{ player: :player_2, card: hd(g.player_2), line: "1"})
+  #   g = Game.deploy(g, %{ player: :player_2, card: hd(g.player_2), line: "1"})
+  #   g = Game.deploy(g, %{ player: :player_1, card: hd(g.player_1), line: "3"})
+  #   g = Game.deploy(g, %{ player: :player_2, card: hd(g.player_2), line: "1"})
 
-    assert c1 in g.battlefield["1"].player_2
-    assert c4 in g.battlefield["1"].player_2
-    assert g.player_2 == []
+  #   assert c1 in g.battlefield["1"].player_2
+  #   assert c4 in g.battlefield["1"].player_2
+  #   assert g.player_2 == []
 
-    assert c3 in g.battlefield["3"].player_1
-    assert g.player_1 == [c2]
-  end
+  #   assert c3 in g.battlefield["3"].player_1
+  #   assert g.player_1 == [c2]
+  # end
 
   # describe "evaluation of formations" do
   #   test "a wedge" do

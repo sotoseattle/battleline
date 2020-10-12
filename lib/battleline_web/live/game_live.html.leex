@@ -1,21 +1,40 @@
 
-<h3><%= @yo %></h3>
 <%# <div><button phx-click="play">Play</button></div> %>
-<div><button phx-click="draw">Deck</button></div>
+<div>
+  <p class="alert alert-info"><%= live_flash(@flash, :info) %></p>
+
+  <%= if @game.turn == @yo do %>
+    <button phx-click="draw">Deck [<%= length(@game.deck) %>]</button>
+    <button phx-click="pass" style="background-color: darkred;">
+      Pass
+    </button>
+  <% else %>
+    <pre>Waiting for <%= @game.turn %></pre>
+  <% end %>
+
+</div>
 
 <div class="battlefield">
-  <%= for {flag, force} <- @game.battlefield do %>
+  <%= for {flag, force} <- @game.theater do %>
     <div class="battleline">
-        <div class="deployment"></div>
+        <div class="deployment">
+
+        <%= for card <- force.enemies do %>
+          <div class="card"style="background-color:<%= card.color %>;">
+            <div class="card_value">
+              <%= card.value %>
+            </div>
+          </div>
+        <% end %>
+        </div>
 
         <div class="flag"><%= flag %></div>
 
         <div class="deployment"
         phx-click="deploy"
         phx-value-line="<%= flag %>"
-        phx-value-player="<%= :player_1 %>"
         >
-          <%= for card <- force.player_1 do %>
+          <%= for card <- force.allies do %>
             <div class="card"style="background-color:<%= card.color %>;">
               <div class="card_value">
                 <%= card.value %>
@@ -29,11 +48,10 @@
 
 <hr/>
 <div class="hand">
-  <%= for card <- @game.player_1 do %>
+  <%= for card <- @game.hands.allies do %>
     <div class="card <%= if card.active? do %>hot<% end %>"
          phx-click="select",
          phx-value-card="<%= card.color %>_<%= card.value %>"
-         phx-value-player="player_1",
          style="width:10%; background-color:<%= card.color %>;">
         <div class="card_value">
             <%= card.value %>
@@ -41,5 +59,3 @@
     </div>
   <% end %>
 </div>
-
-<pre><%= @game.log %></pre>

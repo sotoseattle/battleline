@@ -1,61 +1,18 @@
 defmodule Battleline.Game do
-  alias Battleline.Game.Card
-  alias Battleline.Game.Battlefield
+  alias Battleline.Game.{Card, Battlefield}
 
-  defstruct ~w[deck player_1 player_2 battlefield log players]a
+  defstruct ~w[yo players deck hands theater turn]a
 
   def new do
+    # yo: user_email,
     %__MODULE__{
       deck: Card.new_deck(),
-      player_1: [],
-      player_2: [],
-      battlefield: Battlefield.new(),
-      log: ["...game initialized"]
+      hands: %{allies: [], enemies: []},
+      theater: Battlefield.new(),
+      players: MapSet.new(),
+      turn: nil
     }
   end
-
-  def draw(%{deck: [card | rest]} = game, player) do
-    if length(Map.get(game, player)) >= 7 do
-      game
-    else
-      game
-      |> Map.put(:deck, rest)
-      |> add_to_hand(player, card)
-      |> Map.put(:log, "#{player} drew a card")
-    end
-  end
-
-  defp add_to_hand(game, player, card) do
-    game |> Map.update!(player, &([card|&1]))
-  end
-
-  defp remove_from_hand(game, player, card) do
-    game |> Map.update!(player, &List.delete(&1, card))
-  end
-
-  def activate_card(game, player, color, value) do
-    game
-    |> Map.update!(player, &Enum.map(&1,
-        fn x ->
-          same?(x, color,  String.to_integer(value))
-        end))
-    |> Map.put(:log, "#{player} selected #{color}:#{value}")
-  end
-
-  defp same?(%{color: col, value: val, active?: false} = card, col, val) do
-    Map.put(card, :active?, true)
-  end
-  defp same?(card, _, _), do: Map.put(card, :active?, false)
-
-  def deploy(game, %{card: nil}), do: game
-  def deploy(game, %{player: player, card: card, line: line}) do
-    game
-    |> remove_from_hand(player, card)
-    |> update_in(
-      [:battlefield, line, player] |> Enum.map(&Access.key/1),
-      &([card|&1]))
-  end
-
 
   # def cleanup(game) do
   #   game

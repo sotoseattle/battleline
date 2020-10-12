@@ -14,6 +14,11 @@ defmodule Battleline.Game.Battlefield do
   end
 
   defp new_forces do
-    %{player_1: [], player_2: [], winner: :na}
+    %{allies: [], enemies: []}
+  end
+
+  def deploy(%{card: nil, theater: theater}), do: theater
+  def deploy(%{card: card, theater: theater, line: line}) do
+    update_in(theater, [line, :allies], &([card|&1]))
   end
 end
