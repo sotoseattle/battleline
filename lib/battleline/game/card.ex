@@ -14,15 +14,7 @@ defmodule Battleline.Game.Card do
     |> Enum.shuffle
   end
 
-  def draw(deck, hand) when length(hand) >= 7 do
-    {deck, hand}
-  end
-
-  def draw([card | rest], hand) do
-    {rest, [card| hand]}
-  end
-
-  def activate_card(hand, color, value) do
+  def activate_card_in_hand(hand, color, value) do
     hand
     |> Enum.map(
         fn card ->
@@ -34,8 +26,5 @@ defmodule Battleline.Game.Card do
     Map.put(card, :active?, true)
   end
   defp same?(card, _, _), do: Map.put(card, :active?, false)
-
-  def remove_card(nil, hand), do: hand
-  def remove_card(card, hand), do: List.delete(hand, card)
 
 end

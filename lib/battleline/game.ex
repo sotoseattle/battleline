@@ -1,18 +1,57 @@
 defmodule Battleline.Game do
-  alias Battleline.Game.{Card, Battlefield}
+  alias Battleline.Game.{Card, Hand, Battlefield}
 
-  defstruct ~w[yo players deck hands theater turn]a
+  defstruct ~w[yo deck hands battle turn]a
 
-  def new do
-    # yo: user_email,
+  def new(player) do
     %__MODULE__{
       deck: Card.new_deck(),
-      hands: %{allies: [], enemies: []},
-      theater: Battlefield.new(),
-      players: MapSet.new(),
+      hands: %{player => []},
+      battle: Battlefield.new(player),
       turn: nil
     }
   end
+
+  def get_players(game) do
+    Map.keys(game.hands)
+  end
+
+  def set_player_turn(game, player) do
+    Map.put(game, :turn, player)
+  end
+
+  def opponent(game, player) do
+    game
+    |> get_players
+    |> Enum.find(&(&1 != player))
+  end
+
+  def deactivate_cards(game, player) do
+    game
+    |> Map.get(:hands)
+    |> Hand.deactivate_cards(player)
+    |> (&Map.put(game, :hands, &1)).()
+  end
+
+  def update_hands(game, player, new_hand) do
+    Map.put(game, :hands, %{game.hands | player => new_hand})
+  end
+
+  def update_deck(game, deck) do
+    Map.put(game, :deck, deck)
+  end
+
+  def draw(deck, hand) when length(hand) >= 7 do
+    {deck, hand}
+  end
+
+  def draw([card | rest], hand) do
+    {rest, [card| hand]}
+  end
+
+  def remove_card(nil, hand), do: hand
+  def remove_card(card, hand), do: List.delete(hand, card)
+
 
   # def cleanup(game) do
   #   game
