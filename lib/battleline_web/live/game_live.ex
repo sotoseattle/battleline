@@ -2,7 +2,6 @@ defmodule BattlelineWeb.GameLive do
   use BattlelineWeb, :live_view
 
   alias Battleline.{Accounts, Game}
-  alias Battleline.Game.{Battlefield}
 
   def mount(_o_o, %{"user_token" => token}, socket) do
     Phoenix.PubSub.subscribe(Battleline.PubSub, "war")
@@ -15,7 +14,23 @@ defmodule BattlelineWeb.GameLive do
     end
   end
 
-  # VIEW HELPERS
+  defp sync(registered_players_1, registered_players_2, game_1, game_2)
+  defp sync([a], [b], game1, game2) when a != b do
+    game = Game.sync_games(game1, game2)
+    broadcast({:setup, %{caller: a, game: game}})
+    game
+  end
+  defp sync([a], [a, _], _game1, game2), do: game2
+  defp sync([a], [_, a], _game1, game2), do: game2
+  defp sync([a, b], [a], game1, _) do
+    broadcast({:setup, %{caller: b, game: game1}})
+    game1
+  end
+  defp sync([a, b], [b], game1, _) do
+    broadcast({:setup, %{caller: a, game: game1}})
+    game1
+  end
+  defp sync(_, _, game1, _), do: game1
 
   defp broadcast(msg) do
     Phoenix.PubSub.broadcast(Battleline.PubSub, "war", msg)
@@ -25,17 +40,6 @@ defmodule BattlelineWeb.GameLive do
     token
     |> Accounts.get_user_by_session_token()
     |> Map.get(:email)
-  end
-
-  # Seems redundant or at least belongs to Game
-  defp sync_game(opponent_game, my_game) do
-    new_hands = Map.merge(my_game.hands, opponent_game.hands)
-    new_battle = Map.merge(my_game.battle, opponent_game.battle)
-
-    my_game
-    |> Map.put(:hands, new_hands)
-    |> Map.put(:battle, new_battle)
-    |> Map.put(:turn, hd(Map.keys(new_hands)))
   end
 
   defp draw(socket) do
@@ -63,8 +67,6 @@ defmodule BattlelineWeb.GameLive do
     assign(socket, game: game)
   end
 
-  defp n_players(game), do: length(Map.keys(game.hands))
-
   # HANDLERS
 
   def handle_event("draw", _o_o, socket) do
@@ -83,26 +85,13 @@ defmodule BattlelineWeb.GameLive do
     {:noreply, deploy(socket, o_o)}
   end
 
-  def handle_info({:setup, %{caller: yo}}, %{assigns: %{yo: yo}} = socket) do
-    {:noreply, socket}
-  end
-  def handle_info({:setup, %{game: other_game}}, socket) do
-    my_game = socket.assigns.game
-
-    if n_players(my_game) == 1 do
-      my_game = sync_game(other_game, my_game)
-      if n_players(other_game) == 1 do
-        broadcast({:setup, %{caller: socket.assigns.yo, game: my_game}})
-      end
-      {:noreply, assign(socket, game: my_game)}
-    else
-      if n_players(other_game) == 1 do
-        broadcast({:setup, %{caller: socket.assigns.yo, game: my_game}})
-        {:noreply, assign(socket, game: my_game)}
-      else
-        {:noreply, socket}
-      end
-    end
+  def handle_info({:setup, %{game: other_game}}, %{assigns: %{game: game}} = socket) do
+    game = sync(
+      Map.keys(game.hands),
+      Map.keys(other_game.hands),
+      game,
+      other_game)
+    {:noreply, assign(socket, game: game)}
   end
 
   def handle_info({:pass, %{caller: yo}},  %{assigns: %{yo: yo}} = socket) do

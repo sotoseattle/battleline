@@ -12,6 +12,16 @@ defmodule Battleline.Game do
     }
   end
 
+  def sync_games(opponent_game, my_game) do
+    new_hands = Map.merge(my_game.hands, opponent_game.hands)
+    new_battle = Map.merge(my_game.battle, opponent_game.battle)
+
+    my_game
+    |> Map.put(:hands, new_hands)
+    |> Map.put(:battle, new_battle)
+    |> Map.put(:turn, hd(Map.keys(new_hands)))
+  end
+
   def get_players(game) do
     Map.keys(game.hands)
   end
