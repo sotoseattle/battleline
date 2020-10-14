@@ -24,7 +24,7 @@ defmodule BattlelineWeb.GameLive do
   defp sync([a], [a, _], _game1, game2), do: game2
   defp sync([a], [_, a], _game1, game2), do: game2
   defp sync([a, b], [a], game1, _), do: broadcast(game1, b, :setup)
-  defp sync([a, b], [b], game1, _), do: broadcast(game1, a, game1)
+  defp sync([a, b], [b], game1, _), do: broadcast(game1, a, :setup)
   defp sync(_, _, game1, _), do: game1
 
   defp broadcast(game, player, event) do
@@ -94,7 +94,7 @@ defmodule BattlelineWeb.GameLive do
       game,
       other_game)
 
-    {:noreply, assign(socket, game: game)}
+      {:noreply, assign(socket, game: game)}
   end
 
   def handle_info({:pass, %{caller: yo}},  %{assigns: %{yo: yo}} = socket) do
