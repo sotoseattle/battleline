@@ -5,7 +5,7 @@ defmodule Battleline.Game do
 
   def new(player) do
     %__MODULE__{
-      deck: Card.new_deck(),
+      deck: new_deck(),
       hands: %{player => []},
       battle: Battlefield.new(player),
       turn: nil
@@ -16,41 +16,96 @@ defmodule Battleline.Game do
     Map.keys(game.hands)
   end
 
-  def set_player_turn(game, player) do
+  def opponent(game, player) do
+    game |> get_players |> Enum.find(&(&1 != player))
+  end
+
+  def new_deck do
+    for c <- Card.colors, v <- (1..2) do
+      Card.new(c, v)
+    end
+    |> Enum.shuffle
+  end
+
+  def draw_card(game, player) do
+    {deck, hand} = draw(game.deck, game.hands[player])
+
+    game
+      |> update_deck(deck)
+      |> update_hand(player, hand) # DONT LIKE IT
+  end
+
+  defp draw(deck, hand) when length(hand) >= 7, do: {deck, hand}
+  defp draw([card | rest], hand), do: {rest, [card| hand]}
+
+  def next_turn(game, player) do
+    next = opponent(game, player)
+
+    game
+      |> update_player_turn(next)
+      |> deactivate_cards(player)
+  end
+
+  def select_card(game, player, %{color: c, value: v}) do
+    hand = game.hands[player]
+      |> activate_card(c, v)
+
+    update_hand(game, player, hand)
+  end
+
+  defp activate_card(hand, color, value) do
+    Card.new(color, String.to_integer(value))
+      |> Hand.activate_card(hand)
+  end
+
+  defp deactivate_cards(game, player) do
+    game.hands
+      |> Hand.deactivate_cards(player)
+      |> (&Map.put(game, :hands, &1)).()
+  end
+
+  def deploy(game, player, line) do
+    card = Enum.find(game.hands[player], &(&1.active?))
+
+    game
+      |> remove_card_from_hand(player, card)
+      |> add_card_to_troops(player, card, line)
+  end
+
+  defp remove_card_from_hand(game, _player, nil), do: game
+  defp remove_card_from_hand(game, player, card) do
+    hand = game.hands[player]
+      |> List.delete(card)
+
+    update_hand(game, player, hand)
+  end
+
+  defp add_card_to_troops(game, _player, nil, _line), do: game
+  defp add_card_to_troops(game, player, card, line) do
+    troops = game.battle[player]
+      |> update_in([line], &([card|&1]))
+
+    update_battle(game, player, troops)
+  end
+
+  # UPDATE GAME
+
+  def update_player_turn(game, player) do
     Map.put(game, :turn, player)
   end
 
-  def opponent(game, player) do
-    game
-    |> get_players
-    |> Enum.find(&(&1 != player))
-  end
-
-  def deactivate_cards(game, player) do
-    game
-    |> Map.get(:hands)
-    |> Hand.deactivate_cards(player)
-    |> (&Map.put(game, :hands, &1)).()
-  end
-
-  def update_hands(game, player, new_hand) do
-    Map.put(game, :hands, %{game.hands | player => new_hand})
+  def update_hand(game, player, hand) do
+    Map.put(game, :hands, %{game.hands | player => hand})
   end
 
   def update_deck(game, deck) do
     Map.put(game, :deck, deck)
   end
 
-  def draw(deck, hand) when length(hand) >= 7 do
-    {deck, hand}
+  def update_battle(game, player, troops) do
+    Map.put(game, :battle, %{game.battle | player => troops})
   end
 
-  def draw([card | rest], hand) do
-    {rest, [card| hand]}
-  end
-
-  def remove_card(nil, hand), do: hand
-  def remove_card(card, hand), do: List.delete(hand, card)
 
 
   # def cleanup(game) do

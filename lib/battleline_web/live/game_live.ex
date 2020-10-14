@@ -1,26 +1,25 @@
 defmodule BattlelineWeb.GameLive do
   use BattlelineWeb, :live_view
 
-  alias Phoenix.PubSub
   alias Battleline.{Accounts, Game}
-  alias Battleline.Game.{Card, Battlefield}
+  alias Battleline.Game.{Battlefield}
 
   def mount(_o_o, %{"user_token" => token}, socket) do
-    PubSub.subscribe(Battleline.PubSub, "war")
+    Phoenix.PubSub.subscribe(Battleline.PubSub, "war")
 
-    player = get_email(token)
-    game = Game.new(player)
-
-    PubSub.broadcast(
-      Battleline.PubSub,
-      "war",
-      {:setup, %{caller: player, game: game}}
-    )
-
-    {:ok, assign(socket, yo: player, game: game)}
+    with player <- get_email(token),
+         game   <- Game.new(player)
+    do
+      broadcast({:setup, %{caller: player, game: game}})
+      {:ok, assign(socket, yo: player, game: game)}
+    end
   end
 
   # VIEW HELPERS
+
+  defp broadcast(msg) do
+    Phoenix.PubSub.broadcast(Battleline.PubSub, "war", msg)
+  end
 
   defp get_email(token) do
     token
@@ -28,6 +27,7 @@ defmodule BattlelineWeb.GameLive do
     |> Map.get(:email)
   end
 
+  # Seems redundant or at least belongs to Game
   defp sync_game(opponent_game, my_game) do
     new_hands = Map.merge(my_game.hands, opponent_game.hands)
     new_battle = Map.merge(my_game.battle, opponent_game.battle)
@@ -39,61 +39,28 @@ defmodule BattlelineWeb.GameLive do
   end
 
   defp draw(socket) do
-    with yo <- socket.assigns.yo,
-         g  <- socket.assigns.game,
-         {deck, hand} <- Game.draw(g.deck, g.hands[yo])
-    do
-      g = socket.assigns.game
-      |> Game.update_deck(deck)
-      |> Game.update_hands(yo, hand)
-      assign(socket, game: g)
-    end
+    game = Game.draw_card(socket.assigns.game, socket.assigns.yo)
+    assign(socket, game: game)
   end
 
   defp pass(socket) do
-    with yo   <- socket.assigns.yo,
-         next <- Game.opponent(socket.assigns.game, yo),
-         game <- socket.assigns.game
-    do
-      game = game
-      |> Game.set_player_turn(next)
-      |> Game.deactivate_cards(yo)
-
-      PubSub.broadcast(
-        Battleline.PubSub,
-        "war",
-        {:pass, %{caller: yo, game: game}}
-      )
-      assign(socket, game: game)
-    end
+    game = Game.next_turn(socket.assigns.game, socket.assigns.yo)
+    broadcast({:pass, %{caller: socket.assigns.yo, game: game}})
+    assign(socket, game: game)
   end
 
-  defp select(socket, %{"card" => color_val}) do
-    with game     <- socket.assigns.game,
-         yo       <- socket.assigns.yo,
-         hand     <- Map.get(game.hands, yo),
-         [c, v]   <- String.split(color_val, "_"),
-         new_hand <- Card.activate_card_in_hand(hand, c, v)
-    do
-      assign(socket, game: Game.update_hands(game, yo, new_hand))
-    end
+  defp select(socket, %{"color" => c, "value" => v}) do
+    game = Game.select_card(
+      socket.assigns.game,
+      socket.assigns.yo,
+      %{color: c, value: v})
+
+    assign(socket, game: game)
   end
 
   defp deploy(socket, %{"line" => line}) do
-    with yo     <- socket.assigns.yo,
-         game   <- socket.assigns.game,
-         hand   <- game.hands[yo],
-         card   <- Enum.find(hand, &(&1.active?)),
-         hand   <- Game.remove_card(card, hand),
-         troops <- game.battle[yo],
-         troops <- Battlefield.deploy(%{card: card, troops: troops, line: line}),
-         battle <- Map.put(game.battle, yo, troops)
-    do
-      game = game
-        |> Game.update_hands(yo, hand)
-        |> Map.put(:battle, battle)
-        assign(socket, game: game)
-    end
+    game = Game.deploy(socket.assigns.game, socket.assigns.yo, line)
+    assign(socket, game: game)
   end
 
   defp n_players(game), do: length(Map.keys(game.hands))
@@ -125,12 +92,12 @@ defmodule BattlelineWeb.GameLive do
     if n_players(my_game) == 1 do
       my_game = sync_game(other_game, my_game)
       if n_players(other_game) == 1 do
-        PubSub.broadcast(Battleline.PubSub, "war", {:setup, %{caller: socket.assigns.yo, game: my_game}})
+        broadcast({:setup, %{caller: socket.assigns.yo, game: my_game}})
       end
       {:noreply, assign(socket, game: my_game)}
     else
       if n_players(other_game) == 1 do
-        PubSub.broadcast(Battleline.PubSub, "war", {:setup, %{caller: socket.assigns.yo, game: my_game}})
+        broadcast({:setup, %{caller: socket.assigns.yo, game: my_game}})
         {:noreply, assign(socket, game: my_game)}
       else
         {:noreply, socket}

@@ -54,7 +54,8 @@
     <%= for card <- @game.hands[@yo] do %>
       <div class="card <%= if card.active? do %>hot<% end %>"
           phx-click="select",
-          phx-value-card="<%= card.color %>_<%= card.value %>"
+          phx-value-color="<%= card.color %>"
+          phx-value-value="<%= card.value %>"
           style="width:10%; background-color:<%= card.color %>;">
           <div class="card_value">
               <%= card.value %>
