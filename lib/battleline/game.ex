@@ -104,12 +104,12 @@ defmodule Battleline.Game do
     Map.put(game, :turn, player)
   end
 
-  def update_hand(game, player, hand) do
-    Map.put(game, :hands, %{game.hands | player => hand})
-  end
-
   def update_deck(game, deck) do
     Map.put(game, :deck, deck)
+  end
+
+  def update_hand(game, player, hand) do
+    Map.put(game, :hands, %{game.hands | player => hand})
   end
 
   def update_battle(game, player, troops) do

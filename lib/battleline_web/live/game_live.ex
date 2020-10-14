@@ -87,13 +87,15 @@ defmodule BattlelineWeb.GameLive do
     {:noreply, deploy(socket, o_o)}
   end
 
+  def handle_info({:setup, %{game: g}}, %{assigns: %{game: g}} = socket) do
+    {:noreply, assign(socket, game: g)}
+  end
   def handle_info({:setup, %{game: other_game}}, %{assigns: %{game: game}} = socket) do
     game = sync(
       Map.keys(game.hands),
       Map.keys(other_game.hands),
       game,
       other_game)
-
       {:noreply, assign(socket, game: game)}
   end
 
