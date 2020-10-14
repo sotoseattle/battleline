@@ -4,36 +4,35 @@ defmodule BattlelineWeb.GameLive do
   alias Battleline.{Accounts, Game}
 
   def mount(_o_o, %{"user_token" => token}, socket) do
-    Phoenix.PubSub.subscribe(Battleline.PubSub, "war")
+    player = get_email(token)
+    game = Game.new(player)
 
-    with player <- get_email(token),
-         game   <- Game.new(player)
-    do
-      broadcast({:setup, %{caller: player, game: game}})
-      {:ok, assign(socket, yo: player, game: game)}
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Battleline.PubSub, "war")
+      broadcast(game, player, :setup)
     end
+
+    {:ok, assign(socket, yo: player, game: game)}
   end
 
   defp sync(registered_players_1, registered_players_2, game_1, game_2)
   defp sync([a], [b], game1, game2) when a != b do
-    game = Game.sync_games(game1, game2)
-    broadcast({:setup, %{caller: a, game: game}})
-    game
+    game1
+    |> Game.sync_games(game2)
+    |> broadcast(a, :setup)
   end
   defp sync([a], [a, _], _game1, game2), do: game2
   defp sync([a], [_, a], _game1, game2), do: game2
-  defp sync([a, b], [a], game1, _) do
-    broadcast({:setup, %{caller: b, game: game1}})
-    game1
-  end
-  defp sync([a, b], [b], game1, _) do
-    broadcast({:setup, %{caller: a, game: game1}})
-    game1
-  end
+  defp sync([a, b], [a], game1, _), do: broadcast(game1, b, :setup)
+  defp sync([a, b], [b], game1, _), do: broadcast(game1, a, game1)
   defp sync(_, _, game1, _), do: game1
 
-  defp broadcast(msg) do
-    Phoenix.PubSub.broadcast(Battleline.PubSub, "war", msg)
+  defp broadcast(game, player, event) do
+    Phoenix.PubSub.broadcast(
+      Battleline.PubSub,
+      "war",
+      {event, %{caller: player, game: game}})
+    game
   end
 
   defp get_email(token) do
@@ -43,28 +42,31 @@ defmodule BattlelineWeb.GameLive do
   end
 
   defp draw(socket) do
-    game = Game.draw_card(socket.assigns.game, socket.assigns.yo)
-    assign(socket, game: game)
+    put_flash(socket, :info, "hola")
+    socket.assigns.game
+    |> Game.draw_card(socket.assigns.yo)
+    |> (&assign(socket, game: &1)).()
   end
 
   defp pass(socket) do
-    game = Game.next_turn(socket.assigns.game, socket.assigns.yo)
-    broadcast({:pass, %{caller: socket.assigns.yo, game: game}})
-    assign(socket, game: game)
+    with yo <- socket.assigns.yo do
+      socket.assigns.game
+      |> Game.next_turn(yo)
+      |> broadcast(yo, :pass)
+      |> (&assign(socket, game: &1)).()
+    end
   end
 
   defp select(socket, %{"color" => c, "value" => v}) do
-    game = Game.select_card(
-      socket.assigns.game,
-      socket.assigns.yo,
-      %{color: c, value: v})
-
-    assign(socket, game: game)
+    socket.assigns.game
+    |> Game.select_card(socket.assigns.yo, %{color: c, value: v})
+    |> (&assign(socket, game: &1)).()
   end
 
   defp deploy(socket, %{"line" => line}) do
-    game = Game.deploy(socket.assigns.game, socket.assigns.yo, line)
-    assign(socket, game: game)
+    socket.assigns.game
+    |> Game.deploy(socket.assigns.yo, line)
+    |> (&assign(socket, game: &1)).()
   end
 
   # HANDLERS
@@ -91,6 +93,7 @@ defmodule BattlelineWeb.GameLive do
       Map.keys(other_game.hands),
       game,
       other_game)
+
     {:noreply, assign(socket, game: game)}
   end
 
@@ -98,7 +101,6 @@ defmodule BattlelineWeb.GameLive do
     {:noreply, socket}
   end
   def handle_info({:pass, %{game: game}},  socket) do
-    IO.puts(String.duplicate("*", 200))
     {:noreply, assign(socket, game: game)}
   end
 end
